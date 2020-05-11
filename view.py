@@ -1,8 +1,7 @@
 # _*_ coding:utf-8 _*_
 import random
+# from translate import translate
 from openpyxl import load_workbook
-import os
-import sys
 
 class WordModel:
     """
@@ -10,12 +9,13 @@ class WordModel:
     meanings 指单词释义
     score指单词得分情况
     """
-    def __init__(self,row = 0,word = '' ,sheet = None , meaning = ''):
+    def __init__(self,row = 0,word = '' ,sheet = None , meaning = '',father = None,listid = -1):
         self.row = row
         self.word = word
         self.meaning = meaning
         self.sheet = sheet
-
+        self.father = father
+        self.listid = listid
 class Controller:
     """
 
@@ -40,8 +40,18 @@ class Controller:
     def get_word_list(self):
         return self.wordlist
 
+    def get_all_meaning(self,i):
+        father = i.father
+        if father:
+            for wordrow in range(father.listid,self.wordlist[-1].listid):
+                if self.wordlist[wordrow].word == father.word:
+                    print(self.wordlist[wordrow].meaning)
+                else:
+                    break
+        else:print('这个单词没有提示。。。')
 
-    def random_in_sheet(self,sheet):
+
+    def randomize_testsheet(self,sheet):
         list_for_random = []
 
         if sheet != 0:
@@ -73,12 +83,6 @@ class Controller:
         return choice_list
 
 
-
-
-    def rowlistappender(self):
-        pass
-
-
 class View:
     def __init__(self):
         self.__controller = Controller()
@@ -96,7 +100,7 @@ class View:
             word_colume = element_locater('#带井号的不会统计', sheet)
             meanings_colume = element_locater('#解释', sheet)
             while blank_checker(sheet,row):
-                value_word = sheet[word_colume + str(row)].value
+                value_word = sheet[word_colume+ str(row)].value
 
                 # print(value_word)
                 #测试
@@ -107,6 +111,8 @@ class View:
                     word.row = row
                     word.meaning = sheet[meanings_colume + str(row)].value
                     word.sheet = sheet
+                    word.father = self.__controller.get_word_list[-1]
+                    word.listid = len(self.__controller.get_word_list)
                     self.__controller.add_word(word)
                 elif value_word[0] ==  '#':
                     pass
@@ -116,6 +122,7 @@ class View:
                     word.row = row
                     word.meaning = sheet[meanings_colume + str(row)].value
                     word.sheet = sheet
+                    word.listid = len(self.__controller.get_word_list)
                     self.__controller.add_word(word)
 
                 row += 1
@@ -139,7 +146,7 @@ class View:
         elif item == "4":
             self.show_word()
         elif item == "5":
-            forms.save("words.xlsx")
+            forms.save("单词本.xlsx")
             forms.close()
             exit(0)
         else:
@@ -172,18 +179,50 @@ class View:
         print('============================')
         if self.checker:
             i = self.select_sheet
-            testlist = self.__controller.random_in_sheet(i)
-            print("注意一定要大写字母选项，只能填 ABCD等等   输入0来退出")
-            for i in testlist:
-                print(i.word)
-                chioce_list = self.__controller.choice_appender(i,testlist,4)
-                for m in range(len(chioce_list)):
-                    print("%s:%s"%(chr(65+m), chioce_list[m].meaning))
-                chioce = input("请选择：")
-                if chioce == '0':
-                    break
-                chioce = ord(chioce) - 65
-                if chioce_list[chioce].word == i.word:
+            testlist = self.__controller.randomize_testsheet(i)
+            if input("输入1来根据单词选词义，2来根据词义默写单词") == '1':
+                self.test_by_choose_meaning(testlist)
+            else:self.test_by_enter_word(testlist)
+
+    def test_by_choose_meaning(self,testlist,repeat = True):
+        print("注意一定要大写字母选项，只能填 ABCD等等   输入0来退出")
+        for i in testlist:
+            print(i.word)
+            chioce_list = self.__controller.choice_appender(i, testlist, 4)
+            for m in range(len(chioce_list)):
+                print("%s:%s" % (chr(65 + m), chioce_list[m].meaning))
+            chioce = input("请选择：")
+            if chioce == '0':
+                break
+            chioce = ord(chioce) - 65
+            if chioce_list[chioce].word == i.word or chioce_list[chioce].meaning == i.meaning:
+                print('=========================')
+                print("恭喜你答对了")
+                print('word:      ', i.word)
+                print('meanings:  ', i.meaning)
+                print("=========================")
+            else:
+                print("=========================")
+                print("答错了。。。正确答案为：%s" % (i.meaning))
+                print("=========================")
+                if repeat : testlist.append(i)
+
+    def test_by_enter_word(self,testlist,repeat = True):
+        for i in testlist:
+            print(i.meaning)
+            answer = input("请输入单词，输入1可以获取提示，输入0退出")
+            if answer == i.word:
+                print('=========================')
+                print("恭喜你答对了")
+                print('word:      ', i.word)
+                print('meanings:  ', i.meaning)
+                print("=========================")
+            elif answer == '0':
+                break
+            elif answer =='1':
+                self.__controller.get_all_meaning(i)
+                answer = input("现在呢？会了吗？手动滑稽")
+                if answer == i.word:
                     print('=========================')
                     print("恭喜你答对了")
                     print('word:      ', i.word)
@@ -191,9 +230,14 @@ class View:
                     print("=========================")
                 else:
                     print("=========================")
-                    print("答错了。。。正确答案为：%s"%(i.meaning))
+                    print("答错了。。。正确答案为：%s" % (i.word))
                     print("=========================")
-                    chioce_list.append(i)
+                    if repeat: testlist.append(i)
+            else:
+                print("=========================")
+                print("答错了。。。正确答案为：%s" % (i.word))
+                print("=========================")
+                if repeat : testlist.append(i)
 
 
     def learn(self):
@@ -219,8 +263,7 @@ print("initializing........")
 # localpath = os.getcwd()
 # dirinformation = os.listdir(localpath)
 # print(dirinformation)
-
-forms = load_workbook("words.xlsx")
+forms = load_workbook("单词本.xlsx")
 print("找到单词本：")
 
 def initialize_user(sheet,listnumber):
@@ -266,4 +309,8 @@ for sheets in forms:
     a+=1
 
 
+# well = translate()
+# well.getword("well")
+# print(well.translation())
+#测试translate
 View().main()

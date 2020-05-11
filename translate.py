@@ -2,9 +2,13 @@ import urllib.request
 import json
 import urllib.parse
 import time
-class traslate:
-    def __init__(self,word):
+class translate:
+    def __init__(self,word = ''):
         self.word = word
+
+    def getword(self,word):
+        self.word = word
+
     def fetch(self,query_str):
         query = {'q': "".join(query_str)}   # list --> str: "".join(list)
         url = 'https://fanyi.youdao.com/openapi.do?keyfrom=11pegasus11&key=273646050&type=data&doctype=json&version=1.1&' + urllib.parse.urlencode(query)
@@ -31,8 +35,11 @@ class traslate:
         string = self.translation().split(",")
         return string
 
-word = input("测试状态，输入单词翻译")
-tran = traslate(word)
-print(tran.translation())
-print(tran.translateSep())
-#translation returns a word while translateSep returns a list
+
+
+# if __name__ == '__main__':
+#     word = input("测试状态，输入单词翻译")
+#     tran = translate(word)
+#     print(tran.translation())
+#     print(tran.translateSep())
+    # translation returns a word while translateSep returns a list
