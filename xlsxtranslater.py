@@ -3,7 +3,7 @@ from translate import translate
 
 trans = translate()
 
-forms = load_workbook("单词本.xlsx")
+forms = load_workbook("words.xlsx")
 
 
 sheetlist = []
@@ -61,4 +61,4 @@ def indexer(she):
 
 i = input("请输入要翻译的表格序号:")
 indexer(int(i))
-forms.save("单词本.xlsx")
+forms.save("words.xlsx")
