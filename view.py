@@ -146,7 +146,7 @@ class View:
         elif item == "4":
             self.show_word()
         elif item == "5":
-            forms.save("单词本.xlsx")
+            forms.save("words.xlsx")
             forms.close()
             exit(0)
         else:
@@ -263,7 +263,7 @@ print("initializing........")
 # localpath = os.getcwd()
 # dirinformation = os.listdir(localpath)
 # print(dirinformation)
-forms = load_workbook("单词本.xlsx")
+forms = load_workbook("words.xlsx")
 print("找到单词本：")
 
 def initialize_user(sheet,listnumber):
