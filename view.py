@@ -9,13 +9,16 @@ class WordModel:
     meanings 指单词释义
     score指单词得分情况
     """
-    def __init__(self,row = 0,word = '' ,sheet = None , meaning = '',father = None,listid = -1):
+    def __init__(self,row = 0,word = '' ,sheet = None , meaning = '',father = None,listid = -1,correct = 0,false = 0,col_num=0):
         self.row = row
         self.word = word
         self.meaning = meaning
         self.sheet = sheet
         self.father = father
         self.listid = listid
+        self.correct = correct
+        self.false = false
+        self.col_num = col_num
 class Controller:
     """
 
@@ -138,7 +141,10 @@ class View:
     def __select_menu_item(self):
         item = input("请您输入选项:")
         if item == "1":
-            self.login()
+            if self.checker:
+                print("已经登陆，若要退出，请重新加载程序")
+            else:
+                self.login()
         elif item == "2":
             self.test()
         elif item == "3":
@@ -156,11 +162,79 @@ class View:
     def login(self):
         name = input("输入用户名")
         self.__controller.input_name(name)
+        wordlist = self.__controller.get_word_list
+        current_sheet = wordlist[1].sheet
+        namecolume = element_locater(name , current_sheet ,row = '2')
+        if namecolume:
+            print("在" ,end='  ')
+            print(current_sheet,end= '  ')
+            print("中找到用户:  "+name)
+        else:
+            namecolume = element_locater("user_end_point",current_sheet,row='2')
+            current_sheet.insert_cols(current_sheet[namecolume+'2'].col_idx)
+            current_sheet[namecolume+'2'].value = name
+            print("未找到用户，已经在最后一列创建")
+        for word in wordlist:
+            if word.sheet != current_sheet:
+                current_sheet = word.sheet
+                namecolume = element_locater(name , current_sheet , row = '2')
+                if namecolume:
+                    print("在" ,end='  ')
+                    print(current_sheet,end= '  ')
+                    print("中找到用户:  "+name)
+                else:
+                    namecolume = element_locater("user_end_point",current_sheet,row='2')
+                    current_sheet.insert_cols(current_sheet[namecolume+'2'].col_idx)
+                    current_sheet[namecolume+'2'].value = name
+                    print("未找到用户，已经在最后一列创建")
+
+
+                word.col_num = current_sheet[namecolume+'2'].col_idx
+                rate_chr = current_sheet[namecolume+str(word.row)].value
+                
+                
+                if rate_chr == None:
+                    word.correct = 0
+                    word.false = 0
+                else:
+                    correct = ''
+                    all_ = ''
+                    slice_pos = rate_chr.index('、')
+                    for i in range(slice_pos):
+                        correct+= rate_chr[i]
+                    # print(correct)
+                    word.correct = int(correct)
+                    for i in range(slice_pos+1,len(rate_chr)):
+                        all_+= rate_chr[i]
+                    word.false = int(all_)-int(correct)
+            elif word.sheet == current_sheet:
+                
+                word.col_num = current_sheet[namecolume+'2'].col_idx
+                rate_chr = current_sheet[namecolume+str(word.row)].value
+                
+                
+                if rate_chr == None:
+                    word.correct = 0
+                    word.false = 0
+                else:
+                    correct = ''
+                    all_ = ''
+                    slice_pos = rate_chr.index('、')
+                    for i in range(slice_pos):
+                        correct+= rate_chr[i]
+                    word.correct = int(correct)
+                    # print(correct)
+                    for i in range(slice_pos+1,len(rate_chr)):
+                        all_+= rate_chr[i]
+                    word.false = int(all_)-int(correct)
+
 
     @property
     def select_sheet(self):
+        flag = 0
         for mn in range(len(sheetlist)):
-            print(sheetlist[mn])
+            flag+=1
+            print(str(flag)+ " >> ", sheetlist[mn])
         ss = input("选择第几个表格或者输入a全选")
         if ss == 'a':
             return 0
@@ -196,12 +270,18 @@ class View:
                 break
             chioce = ord(chioce) - 65
             if chioce_list[chioce].word == i.word or chioce_list[chioce].meaning == i.meaning:
+                i.correct+=1
+                cell =i.sheet.cell(i.row , i.col_num)  #先行再列，这个东西和别的反过来的
+                cell.value = correct_rate_adder('r',cell.value)
                 print('=========================')
                 print("恭喜你答对了")
                 print('word:      ', i.word)
                 print('meanings:  ', i.meaning)
                 print("=========================")
             else:
+                i.false+=1
+                cell =i.sheet.cell(i.row , i.col_num)  #先行再列，这个东西和别的反过来的
+                cell.value = correct_rate_adder('f',cell.value)
                 print("=========================")
                 print("答错了。。。正确答案为：%s" % (i.meaning))
                 print("=========================")
@@ -251,11 +331,12 @@ class View:
     def show_word(self):
         wordlist = self.__controller.get_word_list
         for i in wordlist:
-            print('word:      ' ,  i.word)
-            print('meanings:  ' , i.meaning)
-            print('sheet:  ' ,  i.sheet)
-            print('row:       ' ,  i.row)
-            print("=========================")
+            print('word:          ' ,  i.word)
+            print('meanings:      ' , i.meaning)
+            print('sheet:         ' ,  i.sheet)
+            print('row:           ' ,  i.row)
+            if i.correct+i.false != 0 : print('correct_rate:  ' ,  i.correct/(i.correct+i.false))
+            print('=========================')
 
 userlist = []
 sheetlist = []
@@ -281,13 +362,39 @@ def initialize_user(sheet,listnumber):
                     break
             break
 
-def element_locater(element,sheet):
+def correct_rate_adder(right_or_not,rate_chr):
+    if not rate_chr == None:
+        correct = ''
+        all_ = ''
+        slice_pos = rate_chr.index('、')
+        for i in range(slice_pos):
+            correct+= rate_chr[i]
+        
+        for i in range(slice_pos+1,len(rate_chr)):
+            all_+= rate_chr[i]
+        
+        if right_or_not == 'r':
+            correct = str(int(correct)+1)
+            all_ = str(int(all_)+1)
+        elif right_or_not =='f':
+            all_ = str(int(all_)+1)
+        return correct+'、'+all_
+    else:
+        if right_or_not == 'r': return '1、1'
+        elif right_or_not == 'f': return '0、1'
+        
+
+
+def element_locater(element,sheet,row = '1'):
+    flag = False
     for ascid in range(ord('A'),ord('Z')):
-        cellname = chr(ascid)+'1'
+        cellname = chr(ascid)+ row
         # print(cellname)
         # print(sheet[cellname].value)
         if sheet[cellname].value == element:
+            flag = True
             return chr(ascid)
+    return flag
 
 def blank_checker(sheet,row):
     bo = True
@@ -307,6 +414,8 @@ for sheets in forms:
     initialize_user(sheets,a)
     # print(userlist)
     a+=1
+
+
 
 
 # well = translate()
