@@ -158,76 +158,92 @@ class View:
         else:
             print("输入错误")
 
+    def username_login_sheet(self,command = 'f',target_sheet=None):
+        #command 用于标记操作 默认是‘f’表示find也就是查找用户在某个单词表里是否存在
+        #target_sheet 
+        #所有command:
+        #   1.'f'   find 查找用户是否存在 存在print输出 无返回值
+        #   2.'c'   create 在指定单词表里创建用户
+        #   3.'t'   test 程序内部判断是否存在用户，没有输出和创建请求
+        name = self.__controller.output_name()
+        # wordlist = self.__controller.get_word_list()
+        namecolume = element_locater(name , target_sheet ,row = '2')
+        if command == 'f':
+            if namecolume:
+                print("在" ,end='  ')
+                print(target_sheet,end= '  ')
+                print("中找到用户:  "+name)
+                self.correct_rate_importer(target_sheet)
+                return True
+            else:
+                print("在" ,end='  ')
+                print(target_sheet,end= '  ')
+                print("中没有找到用户:  ",name)
+                req = input("是否创建？ y or n")
+                if req == 'y':
+                    self.username_login_sheet('c',target_sheet)
+                    return True
+                elif req == 'n':
+                    return False
+        elif command == 'c':
+            namecolume = element_locater("user_end_point",target_sheet,row='2')
+            target_sheet.insert_cols(target_sheet[namecolume+'2'].col_idx)
+            target_sheet[namecolume+'2'].value = name
+            print("在",target_sheet,"中创建用户成功")
+            self.correct_rate_importer(target_sheet)
+        elif command == 't':
+            if namecolume:
+                return True
+            else:return False
+
 
     def login(self):
+
         name = input("输入用户名")
         self.__controller.input_name(name)
-        wordlist = self.__controller.get_word_list
-        current_sheet = wordlist[1].sheet
-        namecolume = element_locater(name , current_sheet ,row = '2')
-        if namecolume:
-            print("在" ,end='  ')
-            print(current_sheet,end= '  ')
-            print("中找到用户:  "+name)
-        else:
-            namecolume = element_locater("user_end_point",current_sheet,row='2')
-            current_sheet.insert_cols(current_sheet[namecolume+'2'].col_idx)
-            current_sheet[namecolume+'2'].value = name
-            print("未找到用户，已经在最后一列创建")
-        for word in wordlist:
-            if word.sheet != current_sheet:
-                current_sheet = word.sheet
-                namecolume = element_locater(name , current_sheet , row = '2')
-                if namecolume:
-                    print("在" ,end='  ')
-                    print(current_sheet,end= '  ')
-                    print("中找到用户:  "+name)
-                else:
-                    namecolume = element_locater("user_end_point",current_sheet,row='2')
-                    current_sheet.insert_cols(current_sheet[namecolume+'2'].col_idx)
-                    current_sheet[namecolume+'2'].value = name
-                    print("未找到用户，已经在最后一列创建")
+        # wordlist = self.__controller.get_word_list
+        # current_sheet = wordlist[1].sheet
+        # namecolume = element_locater(name , current_sheet ,row = '2')
+        # if namecolume:
+            # print("在" ,end='  ')
+            # print(current_sheet,end= '  ')
+            # print("中找到用户:  "+name)
+            # self.correct_rate_importer(current_sheet)
+        
 
 
-                word.col_num = current_sheet[namecolume+'2'].col_idx
-                rate_chr = current_sheet[namecolume+str(word.row)].value
-                
-                
-                if rate_chr == None:
-                    word.correct = 0
-                    word.false = 0
-                else:
-                    correct = ''
-                    all_ = ''
-                    slice_pos = rate_chr.index('、')
-                    for i in range(slice_pos):
-                        correct+= rate_chr[i]
-                    # print(correct)
-                    word.correct = int(correct)
-                    for i in range(slice_pos+1,len(rate_chr)):
-                        all_+= rate_chr[i]
-                    word.false = int(all_)-int(correct)
-            elif word.sheet == current_sheet:
-                
-                word.col_num = current_sheet[namecolume+'2'].col_idx
-                rate_chr = current_sheet[namecolume+str(word.row)].value
-                
-                
-                if rate_chr == None:
-                    word.correct = 0
-                    word.false = 0
-                else:
-                    correct = ''
-                    all_ = ''
-                    slice_pos = rate_chr.index('、')
-                    for i in range(slice_pos):
-                        correct+= rate_chr[i]
-                    word.correct = int(correct)
-                    # print(correct)
-                    for i in range(slice_pos+1,len(rate_chr)):
-                        all_+= rate_chr[i]
-                    word.false = int(all_)-int(correct)
 
+    def correct_rate_importer(self,target_sheet):
+        name = self.__controller.output_name()
+        word_colume = element_locater('#带井号的不会统计', target_sheet)
+        flag = 0
+        if name:
+            # print('correctname importer test:',name)
+            
+            for word in self.__controller.wordlist:
+                if word.sheet == target_sheet:
+                    flag = 1
+                    namecolume = element_locater(name , target_sheet , row = '2')
+                    word.col_num = target_sheet[namecolume+'2'].col_idx
+                    rate_chr = target_sheet[namecolume+str(word.row)].value
+                        
+                    if rate_chr == None:
+                        word.correct = 0
+                        word.false = 0
+                    else:
+                        correct = ''
+                        all_ = ''
+                        slice_pos = rate_chr.index('、')
+                        for i in range(slice_pos):
+                            correct+= rate_chr[i]
+                        word.correct = int(correct)
+                            # print(correct)
+                        for i in range(slice_pos+1,len(rate_chr)):
+                            all_+= rate_chr[i]
+                        word.false = int(all_)-int(correct)
+                elif flag == 1:break
+                elif flag == 0:pass
+            else: return False
 
     @property
     def select_sheet(self):
@@ -253,10 +269,13 @@ class View:
         print('============================')
         if self.checker:
             i = self.select_sheet
-            testlist = self.__controller.randomize_testsheet(i)
-            if input("输入1来根据单词选词义，2来根据词义默写单词") == '1':
-                self.test_by_choose_meaning(testlist)
-            else:self.test_by_enter_word(testlist)
+            if self.username_login_sheet('f',i):
+                testlist = self.__controller.randomize_testsheet(i)
+                if input("输入1来根据单词选词义，2来根据词义默写单词") == '1':
+                    self.test_by_choose_meaning(testlist)
+                else:self.test_by_enter_word(testlist)
+            else:print("选中单词表不存在用户，请创建或者更换用户")
+            
 
     def test_by_choose_meaning(self,testlist,repeat = True):
         print("注意一定要大写字母选项，只能填 ABCD等等   输入0来退出")
@@ -271,6 +290,8 @@ class View:
             chioce = ord(chioce) - 65
             if chioce_list[chioce].word == i.word or chioce_list[chioce].meaning == i.meaning:
                 i.correct+=1
+                print('row',i.row)
+                print('col',i.col_num)
                 cell =i.sheet.cell(i.row , i.col_num)  #先行再列，这个东西和别的反过来的
                 cell.value = correct_rate_adder('r',cell.value)
                 print('=========================')
@@ -335,7 +356,8 @@ class View:
             print('meanings:      ' , i.meaning)
             print('sheet:         ' ,  i.sheet)
             print('row:           ' ,  i.row)
-            if i.correct+i.false != 0 : print('correct_rate:  ' ,  i.correct/(i.correct+i.false))
+            if self.username_login_sheet('t',i.sheet):
+                if i.correct+i.false != 0 : print('correct_rate:  ' ,  i.correct/(i.correct+i.false))
             print('=========================')
 
 userlist = []
