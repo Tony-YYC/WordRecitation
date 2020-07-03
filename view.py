@@ -54,24 +54,59 @@ class Controller:
         else:print('这个单词没有提示。。。')
 
 
-    def randomize_testsheet(self,sheet):
+    def randomize_testsheet(self,sheet,command =0):
         list_for_random = []
-
-        if sheet != 0:
-            flag = 0
-            for i in self.wordlist:
-                if i.sheet == sheet:
+        if command == 0:
+            #随机抽取
+            if sheet != 0:
+                flag = 0
+                for i in self.wordlist:
+                    if i.sheet == sheet:
+                        list_for_random.append(i)
+                        flag = 1
+                    elif i.sheet != sheet and flag == 1:
+                        break
+                    elif i.sheet != sheet and flag == 0:
+                        pass
+            else:
+                for i in self.wordlist:
                     list_for_random.append(i)
-                    flag = 1
-                elif i.sheet != sheet and flag == 1:
-                    break
-                elif i.sheet != sheet and flag == 0:
-                    pass
-        else:
-            for i in self.wordlist:
-                list_for_random.append(i)
-        random.shuffle(list_for_random)
-        return list_for_random
+            random.shuffle(list_for_random)
+            return list_for_random
+        elif command == 3:
+            #顺序抽取
+            if sheet != 0:
+                flag = 0
+                for i in self.wordlist:
+                    if i.sheet == sheet:
+                        list_for_random.append(i)
+                        flag = 1
+                    elif i.sheet != sheet and flag == 1:
+                        break
+                    elif i.sheet != sheet and flag == 0:
+                        pass
+            else:
+                for i in self.wordlist:
+                    list_for_random.append(i)
+            return list_for_random
+        elif command == 1:
+            if sheet != 0:
+                flag = 0
+                for i in self.wordlist:
+                    if i.sheet == sheet:
+                        list_for_random.append(i)
+                        flag = 1
+                    elif i.sheet != sheet and flag == 1:
+                        break
+                    elif i.sheet != sheet and flag == 0:
+                        pass
+            else:
+                for i in self.wordlist:
+                    list_for_random.append(i)
+            list_for_random.sort(key = lambda i: (i.correct)/(i.correct+i.false))
+            return list_for_random
+
+
 
     def choice_appender(self,word,testlist,choices = 4):
         choice_list = []
@@ -217,7 +252,7 @@ class View:
         name = self.__controller.output_name()
         word_colume = element_locater('#带井号的不会统计', target_sheet)
         flag = 0
-        if name:
+        if name and word_colume:
             # print('correctname importer test:',name)
             
             for word in self.__controller.wordlist:
@@ -244,7 +279,7 @@ class View:
                 elif flag == 1:break
                 elif flag == 0:pass
             else: return False
-
+        else:return False
     @property
     def select_sheet(self):
         flag = 0
@@ -270,7 +305,8 @@ class View:
         if self.checker:
             i = self.select_sheet
             if self.username_login_sheet('f',i):
-                testlist = self.__controller.randomize_testsheet(i)
+                m = int(input("输入0来随机抽取 1来按照正确率抽取(低到高) 2来按照正确率反向抽取（高到低） 3来顺序抽取"))
+                testlist = self.__controller.randomize_testsheet(i,m)
                 if input("输入1来根据单词选词义，2来根据词义默写单词") == '1':
                     self.test_by_choose_meaning(testlist)
                 else:self.test_by_enter_word(testlist)
@@ -357,6 +393,8 @@ class View:
             print('sheet:         ' ,  i.sheet)
             print('row:           ' ,  i.row)
             if self.username_login_sheet('t',i.sheet):
+                self.correct_rate_importer(i.sheet)
+                # print("coorect rate test",i.correct)
                 if i.correct+i.false != 0 : print('correct_rate:  ' ,  i.correct/(i.correct+i.false))
             print('=========================')
 
